@@ -16,14 +16,29 @@ jobs:
   build:
     name: Deliver
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
     steps:
+      - name: Set checkout ref if workflow run event
+        if: ${{ github.event_name == 'workflow_run'  }}
+        run: |
+          echo "CHECKOUT_REF=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_ENV
+
+      - name: Set checkout ref if push event
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "CHECKOUT_REF=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
       - uses: actions/checkout@v2
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
 
       - name: Set env
         run: |
-          echo "APP_ENV=${GITHUB_REF#refs/heads/release/}" >> $GITHUB_ENV
+          CHECKOUT_REF=${{ env.CHECKOUT_REF }}
+          echo "APP_ENV=${CHECKOUT_REF#release/}" >> $GITHUB_ENV
 
       - name: Debug
         run: |
+          echo ${{ env.CHECKOUT_REF }}
           echo ${{ env.APP_ENV }}
-          echo ${{ toJSON(github.event) }}
+          echo "${GITHUB_REF}"
