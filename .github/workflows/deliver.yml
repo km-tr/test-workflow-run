@@ -24,4 +24,6 @@ jobs:
           echo "APP_ENV=${GITHUB_REF#refs/heads/release/}" >> $GITHUB_ENV
 
       - name: Debug
-        run: echo ${{ env.APP_ENV }}
+        run: |
+          echo ${{ env.APP_ENV }}
+          echo ${{ toJSON(github.event) }}
