@@ -1,0 +1,68 @@
+name: Update Version Code
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-code:
+        description: "バージョンコード(0の時はインクリメント)"
+        required: false
+        default: "0"
+      initialize:
+        description: "初期化(true or false)"
+        required: false
+        default: "false"
+
+jobs:
+  build:
+    name: Update Version Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set app env
+        run: |
+          echo "APP_ENV=${GITHUB_REF#refs/heads/release/}" >> $GITHUB_ENV
+
+      - name: Set new version code if exist
+        if: ${{ github.event.inputs.version-code && github.event.inputs.version-code != '0' }}
+        run: |
+          echo "NEW_VERSION_CODE=${{ github.event.inputs.version-code  }}" >> $GITHUB_ENV
+
+      - name: Set new version code if not exist
+        if: ${{ github.event.inputs.version-code || github.event.inputs.version-code == '0' }}
+        run: |
+          echo "NEW_VERSION_CODE=`sh .github/get-next-version-code.sh .env.${{ env.APP_ENV }}`" >> $GITHUB_ENV
+
+      - name: Update .env
+        run: sh .github/update-version-code.sh .env.${{ env.APP_ENV }} ${{ env.NEW_VERSION_CODE }}
+
+      - name: Set git config
+        run: |
+          git config --local user.name "${{ github.actor }}"
+          git config --local user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Initialize with develop
+        if: ${{ github.event.inputs.version-code && github.event.inputs.version-code == 'true' }}
+        run: |
+          git stash
+          git reset --hard origin/develop
+          git stash pop
+
+      - name: Merge develop
+        if: ${{ github.event.inputs.version-code || github.event.inputs.version-code == 'false' }}
+        run: |
+          git merge origin/develop
+
+      - name: Commit files
+        run: |
+          git add .env.${{ env.APP_ENV }}
+          git commit -m "Update version code"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force: true
+          branch: ${{ github.ref }}

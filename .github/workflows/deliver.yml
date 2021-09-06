@@ -1,0 +1,20 @@
+name: Deliver
+
+on:
+  push:
+    branches:
+      - release/stg
+
+jobs:
+  build:
+    name: Deliver
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set env
+        run: |
+          echo "APP_ENV=${GITHUB_REF#refs/heads/release/}" >> $GITHUB_ENV
+
+      - name: Debug
+        run: echo ${{ env.APP_ENV }}
