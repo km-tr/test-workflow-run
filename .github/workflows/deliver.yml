@@ -1,6 +1,13 @@
 name: Deliver
 
 on:
+  workflow_run:
+    workflows:
+      - Update Version Code
+    branches:
+      - release/stg
+    types:
+      - completed
   push:
     branches:
       - release/stg
